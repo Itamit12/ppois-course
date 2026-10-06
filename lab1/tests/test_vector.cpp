@@ -70,7 +70,18 @@ TEST(Vector3DTest, ScalarDivide) {
 
 TEST(Vector3DTest, DivisionByZeroThrows) {
     Vector3D v(0, 0, 0, 1, 1, 1);
-    EXPECT_THROW(v / 0.0, std::invalid_argument);
+    EXPECT_THROW(
+        { auto res = v / 0.0; (void)res; },
+        std::invalid_argument
+    );
+}
+
+TEST(Vector3DTest, DivisionAssignByZeroThrows) {
+    Vector3D v(0, 0, 0, 1, 1, 1);
+    EXPECT_THROW(
+        { v /= 0.0; },
+        std::invalid_argument
+    );
 }
 
 TEST(Vector3DTest, CosAngle90) {
