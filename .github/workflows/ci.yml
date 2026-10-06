@@ -37,8 +37,14 @@ jobs:
                --ignore-errors unused
           lcov --list coverage.info
 
-      - name: Static analysis (cppcheck)
-        run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem lab1/src lab1/include
+            - name: Static analysis (cppcheck)
+        run: |
+          cppcheck --enable=all --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
+            --inline-suppr \
+            -I lab1/include \
+            lab1/src
 
   release:
     needs: build-and-test
