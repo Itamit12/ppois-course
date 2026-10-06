@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, 'feature/**' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libgtest-dev lcov cppcheck
+          cd /usr/src/googletest && sudo cmake . && sudo make && sudo make install
+      - name: Configure
+        run: cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build lab1/build --parallel
+      - name: Run tests
+        run: ctest --test-dir lab1/build --output-on-failure
+      - name: Coverage
+        run: |
+          cd lab1/build
+          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch
+          lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
+          lcov --list coverage.info
+      - name: Static analysis (cppcheck)
+        run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem lab1/src lab1/include
+
+  release:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get install -y cmake g++
+      - name: Build release
+        run: |
+          cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build lab1/build --parallel
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab1-cli
+          path: lab1/build/lab1_cli

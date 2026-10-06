@@ -1,0 +1,59 @@
+# === Build artifacts ===
+build/
+out/
+cmake-build-*/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+*.pdb
+*.ilk
+
+# === Visual Studio ===
+.vs/
+*.vcxproj
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+
+# === Coverage ===
+*.gcda
+*.gcno
+*.gcov
+coverage.info
+coverage_html/
+*.coverage
+*.coveragexml
+TestResults/
+
+# === CMake ===
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini
+
+# === Documentation ===
+lab*/docs/html/
+lab*/docs/latex/
+lab*/docs/xml/
+
+# === vcpkg ===
+vcpkg_installed/
+
+# === Misc ===
+*.log
+*.tmp
