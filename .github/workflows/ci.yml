@@ -29,22 +29,12 @@ jobs:
       - name: Coverage
         run: |
           cd lab1/build
-          lcov --capture --directory . --output-file coverage.info \
-               --ignore-errors mismatch,empty,gcov
-          lcov --remove coverage.info \
-               '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' \
-               --output-file coverage.info \
-               --ignore-errors unused
+          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' --output-file coverage.info --ignore-errors unused
           lcov --list coverage.info
 
-            - name: Static analysis (cppcheck)
-        run: |
-          cppcheck --enable=all --error-exitcode=1 \
-            --suppress=missingIncludeSystem \
-            --suppress=missingInclude \
-            --inline-suppr \
-            -I lab1/include \
-            lab1/src
+      - name: Static analysis (cppcheck)
+        run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=missingInclude --inline-suppr -I lab1/include lab1/src
 
   release:
     needs: build-and-test
