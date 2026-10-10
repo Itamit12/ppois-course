@@ -28,23 +28,24 @@ jobs:
 
       - name: Coverage
         run: |
-          pip install gcovr
           cd lab1/build
-          gcovr --root ../.. \
-                --filter '.*/lab1/src/.*' \
-                --exclude '.*/tests/.*' \
-                --exclude '.*/main\.cpp' \
-                --exclude '.*/_deps/.*' \
-                --print-summary \
-                --txt coverage.txt
-          cat coverage.txt
-
-      - name: Generate coverage HTML
-        if: always()
-        run: |
-          cd lab1/build
+          lcov --capture --directory . --output-file coverage.info \
+               --ignore-errors mismatch,empty,gcov,source
+          lcov --remove coverage.info \
+               '/usr/*' \
+               '*/tests/*' \
+               '*/_deps/*' \
+               '*/gtest*' \
+               '*/googletest*' \
+               '*/main.cpp' \
+               --output-file coverage.info \
+               --ignore-errors unused,source
+          echo "=== Coverage summary ==="
+          lcov --list coverage.info --ignore-errors empty
+          echo "=== Generating HTML ==="
           genhtml coverage.info --output-directory coverage_html \
-                  --ignore-errors source,unused
+                  --ignore-errors source,unused,empty
+          echo "=== HTML generated ==="
 
       - name: Upload coverage HTML
         if: always()
