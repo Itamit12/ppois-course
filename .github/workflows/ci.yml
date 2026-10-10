@@ -28,10 +28,30 @@ jobs:
 
       - name: Coverage
         run: |
+          pip install gcovr
           cd lab1/build
-          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov
-          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' --output-file coverage.info --ignore-errors unused
-          lcov --list coverage.info
+          gcovr --root ../.. \
+                --filter '.*/lab1/src/.*' \
+                --exclude '.*/tests/.*' \
+                --exclude '.*/main\.cpp' \
+                --exclude '.*/_deps/.*' \
+                --print-summary \
+                --txt coverage.txt
+          cat coverage.txt
+
+      - name: Generate coverage HTML
+        if: always()
+        run: |
+          cd lab1/build
+          genhtml coverage.info --output-directory coverage_html \
+                  --ignore-errors source,unused
+
+      - name: Upload coverage HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: lab1/build/coverage_html/
 
       - name: Static analysis (cppcheck)
         run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src

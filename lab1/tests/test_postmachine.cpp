@@ -201,3 +201,20 @@ TEST(PostMachineTest, InputOperator) {
     EXPECT_EQ(pm.getTape()[0], 1);
     EXPECT_EQ(pm.getTape()[2], 1);
 }
+
+TEST(PostMachineTest, AllGetters) {
+    PostMachine pm({1, 0, 1}, 1);
+    EXPECT_EQ(pm.getHead(), 1);
+    EXPECT_EQ(pm.getTape().size(), 3u);
+    EXPECT_EQ(pm.getTape()[0], 1);
+    EXPECT_EQ(pm.getTape()[1], 0);
+    EXPECT_EQ(pm.getTape()[2], 1);
+}
+
+TEST(PostMachineTest, MoveLeftFromZero) {
+    PostMachine pm({0, 0, 0}, 0);
+    pm.moveLeft();
+    EXPECT_EQ(pm.getHead(), 0);
+    EXPECT_EQ(pm.getTape().size(), 4u);
+    EXPECT_EQ(pm.getTape()[0], 0);
+}
