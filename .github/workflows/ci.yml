@@ -57,10 +57,12 @@ jobs:
       - name: Static analysis (cppcheck)
         run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src
 
-  release:
+release:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -72,8 +74,10 @@ jobs:
           cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Release
           cmake --build lab1/build --parallel
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: lab1-cli
-          path: lab1/build/lab1_cli
+          tag_name: lab1-v${{ github.run_number }}
+          name: Lab1 Release v${{ github.run_number }}
+          files: lab1/build/lab1_cli
+          generate_release_notes: true
