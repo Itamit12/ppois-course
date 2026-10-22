@@ -29,35 +29,14 @@ jobs:
       - name: Coverage
         run: |
           cd lab1/build
-          lcov --capture --directory . --output-file coverage.info \
-               --ignore-errors mismatch,empty,gcov,source
-          lcov --remove coverage.info \
-               '/usr/*' \
-               '*/tests/*' \
-               '*/_deps/*' \
-               '*/gtest*' \
-               '*/googletest*' \
-               '*/main.cpp' \
-               --output-file coverage.info \
-               --ignore-errors unused,source
-          echo "=== Coverage summary ==="
+          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' '*/main.cpp' --output-file coverage.info --ignore-errors unused,source
           lcov --list coverage.info --ignore-errors empty
-          echo "=== Generating HTML ==="
-          genhtml coverage.info --output-directory coverage_html \
-                  --ignore-errors source,unused,empty
-          echo "=== HTML generated ==="
-
-      - name: Upload coverage HTML
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-html
-          path: lab1/build/coverage_html/
 
       - name: Static analysis (cppcheck)
         run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src
 
-release:
+  release:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
