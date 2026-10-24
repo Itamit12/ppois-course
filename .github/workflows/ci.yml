@@ -3,7 +3,6 @@ name: CI
 on:
   push:
     branches: [ main, 'feature/**' ]
-    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
 
@@ -38,13 +37,14 @@ jobs:
       - name: Coverage
         run: |
           cd lab1/build
-          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov
-          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' --output-file coverage.info --ignore-errors unused
-          lcov --list coverage.info
+          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source
+          # Добавили исключение */main.cpp, чтобы он не портил статистику
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' '*/main.cpp' --output-file coverage.info --ignore-errors unused,source
+          lcov --list coverage.info --ignore-errors empty
 
   release:
     needs: [static-analysis, build-and-test]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/lab1-vector-postmachine'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +57,8 @@ jobs:
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: lab1-${{ github.ref_name }}-v${{ github.run_number }}
+          name: Lab1 Release (${{ github.ref_name }})
           files: lab1/build/lab1_cli
           fail_on_unmatched_files: true
           generate_release_notes: true
