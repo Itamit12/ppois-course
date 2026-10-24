@@ -6,53 +6,59 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
-  build-and-test:
+  static-analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+      - name: Run cppcheck
+        run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src
 
+  build-and-test:
+    runs-on: ubuntu-latest
+    needs: static-analysis
+    steps:
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ lcov cppcheck
-
+          sudo apt-get install -y cmake g++ lcov
       - name: Configure
         run: cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON
-
       - name: Build
         run: cmake --build lab1/build --parallel
-
       - name: Run tests
         run: ctest --test-dir lab1/build --output-on-failure
-
       - name: Coverage
         run: |
           cd lab1/build
-          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov
-          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' --output-file coverage.info --ignore-errors unused
-          lcov --list coverage.info
-
-      - name: Static analysis (cppcheck)
-        run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src
+          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source
+          # Добавили исключение */main.cpp, чтобы он не портил статистику
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' '*/main.cpp' --output-file coverage.info --ignore-errors unused,source
+          lcov --list coverage.info --fail-under-lines 90
 
   release:
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main'
+    needs: [static-analysis, build-and-test]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/lab1-vector-postmachine'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install dependencies
-        run: sudo apt-get install -y cmake g++
-
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
       - name: Build release
         run: |
           cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Release
           cmake --build lab1/build --parallel
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: lab1-cli
-          path: lab1/build/lab1_cli
+          tag_name: lab1-${{ github.ref_name }}-v${{ github.run_number }}
+          name: Lab1 Release (${{ github.ref_name }})
+          files: lab1/build/lab1_cli
+          fail_on_unmatched_files: true
+          generate_release_notes: true
