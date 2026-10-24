@@ -40,7 +40,7 @@ jobs:
           lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source
           # Добавили исключение */main.cpp, чтобы он не портил статистику
           lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' '*/main.cpp' --output-file coverage.info --ignore-errors unused,source
-          lcov --list coverage.info --ignore-errors empty
+          lcov --list coverage.info --fail-under-lines 90
 
   release:
     needs: [static-analysis, build-and-test]
