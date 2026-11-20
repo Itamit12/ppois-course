@@ -29,7 +29,7 @@ public:
 
     bool execute(const std::string& program);
 
-    [[nodiscard]] std::vector<int> getTape() const;
+    [[nodiscard]] const std::vector<int>& getTape() const;
     [[nodiscard]] int getHead() const;
 
     bool operator==(const PostMachine& other) const;
