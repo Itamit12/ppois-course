@@ -1,4 +1,4 @@
-#include "Vector3D.h"
+﻿#include "Vector3D.h"
 #include "PostMachine.h"
 #include <iostream>
 #include <vector>
@@ -105,6 +105,10 @@ void runPostMenu() {
     std::cout << "Head position: ";
     std::cin >> start;
 
+    if (start < 0 || start >= n) {
+        std::cout << "Error: start position out of range\n";
+        return;
+    }
     PostMachine pm(tape, start);
     int choice = -1;
     while (choice != 0) {
