@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y cmake g++ lcov
 
     - name: Configure CMake
-      run: cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Debug
+      run: cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON
 
     - name: Build
       run: cmake --build lab1/build --config Debug --parallel
