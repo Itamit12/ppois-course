@@ -37,7 +37,7 @@ jobs:
       - name: Coverage
         run: |
           cd lab1/build
-          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source
+          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source,inconsistent
           # Добавили исключение */main.cpp, чтобы он не портил статистику
           lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' '*/main.cpp' --output-file coverage.info --ignore-errors unused,source
           lcov --list coverage.info --fail-under-lines 90
