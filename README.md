@@ -1,38 +1,38 @@
-\# ППОИС — Лабораторные работы
-
-
+# ППОИС — Лабораторные работы
 
 Репозиторий с лабораторными работами по курсу «Проектирование программного обеспечения интеллектуальных систем».
 
-
-
-\## Структура
-
-
+## Структура
 
 |      Папка      |            Лабораторная            | Статус |
-
 |-----------------|------------------------------------|--------|
+| [lab1](./lab1)  | Основы ООП: Vector3D + PostMachine |   ✅   |
+| [lab2](./lab2)  |                  —                 |   ⏳   |
+| [lab3](./lab3)  |                  —                 |   ⏳   |
+| [lab4](./lab4)  |                  —                 |   ⏳   |
 
-| \[lab1](./lab1) | Основы ООП: Vector3D + PostMachine |   ✅   |
+## Сборка и тесты (Windows)
 
-| \[lab2](./lab2) |                  —                 |   ⏳   |
+Для работы с проектом на Windows вам понадобится установленный **Visual Studio 2022** (с рабочей нагрузкой «Разработка классических приложений на C++») и **CMake**.
 
-| \[lab3](./lab3) |                  —                 |   ⏳   |
+> ⚠️ **Важно:** Все команды необходимо выполнять в **Developer Command Prompt for VS 2022** (или в PowerShell, предварительно запустив `vcvars64.bat`), иначе CMake не сможет найти компилятор `cl.exe`.
 
-| \[lab4](./lab4) |                  —                 |   ⏳   |
+### Вариант 1: Сборка с помощью Ninja (рекомендуется)
 
-
-
-\## Сборка и тесты (Windows)
-
-
+Если у вас в PATH добавлен `ninja.exe` (он идет в комплекте с Visual Studio), используйте этот вариант. Сборка проходит быстрее, а файлы лежат прямо в папке `build`.
 
 ```powershell
+#Настройка терминала
+cmd /c '"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" && set' | ForEach-Object { if ($_ -match '^(.*?)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2]) } }
 
-cmake -S lab1 -B lab1/build -DCMAKE\_TOOLCHAIN\_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+#Очистка
+Remove-Item -Recurse -Force lab1/build -ErrorAction SilentlyContinue
 
-cmake --build lab1/build --config Debug --parallel
+# Конфигурация
+cmake -S lab1 -B lab1/build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 
-ctest --test-dir lab1/build -C Debug --output-on-failure
+# Сборка
+cmake --build lab1/build
 
+# Запуск тестов
+ctest --test-dir lab1/build --output-on-failure
