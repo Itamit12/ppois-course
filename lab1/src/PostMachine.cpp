@@ -44,7 +44,7 @@ bool PostMachine::execute(const std::string& program) {
     return true;
 }
 
-std::vector<int> PostMachine::getTape() const { return tape_; }
+const std::vector<int>& PostMachine::getTape() const { return tape_; }
 int PostMachine::getHead() const { return head_; }
 
 bool PostMachine::operator==(const PostMachine& other) const {

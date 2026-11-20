@@ -2,57 +2,84 @@ name: CI
 
 on:
   push:
-    branches: [ main, 'feature/**' ]
+    branches: [ "main", "master", "feature/*" ]
+    tags: [ "v*" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main", "master" ]
 
 jobs:
-  build-and-test:
+  static-analysis:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Install cppcheck
+      run: sudo apt-get update && sudo apt-get install -y cppcheck
+    - name: Run cppcheck
+      run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake g++ lcov cppcheck
+  build-and-test:
+    name: Build on ${{ matrix.os }}
+    needs: static-analysis
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: lab1_cli_linux
+            artifact_path: lab1/build/lab1_cli
+          - os: windows-latest
+            artifact_name: lab1_cli.exe
+            artifact_path: lab1/build/Debug/lab1_cli.exe
 
-      - name: Configure
-        run: cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON
+    steps:
+    - uses: actions/checkout@v4
 
-      - name: Build
-        run: cmake --build lab1/build --parallel
+    - name: Install dependencies (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get update && sudo apt-get install -y cmake g++ lcov
 
-      - name: Run tests
-        run: ctest --test-dir lab1/build --output-on-failure
+    - name: Configure CMake
+      run: cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON
 
-      - name: Coverage
-        run: |
-          cd lab1/build
-          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov
-          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' --output-file coverage.info --ignore-errors unused
-          lcov --list coverage.info
+    - name: Build
+      run: cmake --build lab1/build --config Debug --parallel
 
-      - name: Static analysis (cppcheck)
-        run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src
+    - name: Run tests
+      run: ctest --test-dir lab1/build -C Debug --output-on-failure
+
+    - name: Coverage (Linux only)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cd lab1/build
+        lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source,inconsistent
+        lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' '*/main.cpp' --output-file coverage.info --ignore-errors unused,source
+        lcov --list coverage.info --fail-under-lines 90
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: ${{ matrix.artifact_path }}
 
   release:
+    name: Create Release
     needs: build-and-test
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
 
-      - name: Install dependencies
-        run: sudo apt-get install -y cmake g++
+    - name: Prepare files
+      run: |
+        mkdir -p release_files
+        find artifacts -type f -exec cp {} release_files/ \;
 
-      - name: Build release
-        run: |
-          cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Release
-          cmake --build lab1/build --parallel
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: lab1-cli
-          path: lab1/build/lab1_cli
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release_files/*
