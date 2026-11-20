@@ -1,64 +1,85 @@
-name: CI
+﻿name: CI
 
 on:
   push:
-    branches: [ main, 'feature/**' ]
+    branches: [ "main", "master", "feature/*" ]
+    tags: [ "v*" ]
   pull_request:
-    branches: [ main ]
-
-permissions:
-  contents: write
+    branches: [ "main", "master" ]
 
 jobs:
   static-analysis:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install cppcheck
-        run: sudo apt-get update && sudo apt-get install -y cppcheck
-      - name: Run cppcheck
-        run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src
+    - uses: actions/checkout@v4
+    - name: Install cppcheck
+      run: sudo apt-get update && sudo apt-get install -y cppcheck
+    - name: Run cppcheck
+      run: cppcheck --enable=all --error-exitcode=1 --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr -I lab1/include lab1/src
 
   build-and-test:
-    runs-on: ubuntu-latest
+    name: Build on ${{ matrix.os }}
     needs: static-analysis
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: lab1_cli_linux
+            artifact_path: lab1/build/lab1_cli
+          - os: windows-latest
+            artifact_name: lab1_cli.exe
+            artifact_path: lab1/build/Debug/lab1_cli.exe
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake g++ lcov
-      - name: Configure
-        run: cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Debug -DENABLE_COVERAGE=ON
-      - name: Build
-        run: cmake --build lab1/build --parallel
-      - name: Run tests
-        run: ctest --test-dir lab1/build --output-on-failure
-      - name: Coverage
-        run: |
-          cd lab1/build
-          lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source,inconsistent
-          # Добавили исключение */main.cpp, чтобы он не портил статистику
-          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' '*/main.cpp' --output-file coverage.info --ignore-errors unused,source
-          lcov --list coverage.info --fail-under-lines 90
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get update && sudo apt-get install -y cmake g++ lcov
+
+    - name: Configure CMake
+      run: cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Debug
+
+    - name: Build
+      run: cmake --build lab1/build --config Debug --parallel
+
+    - name: Run tests
+      run: ctest --test-dir lab1/build -C Debug --output-on-failure
+
+    - name: Coverage (Linux only)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cd lab1/build
+        lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,empty,gcov,source,inconsistent
+        lcov --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' '*/gtest*' '*/main.cpp' --output-file coverage.info --ignore-errors unused,source
+        lcov --list coverage.info --fail-under-lines 90
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: ${{ matrix.artifact_path }}
 
   release:
-    needs: [static-analysis, build-and-test]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/lab1-vector-postmachine'
+    name: Create Release
+    needs: build-and-test
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake g++
-      - name: Build release
-        run: |
-          cmake -S lab1 -B lab1/build -DCMAKE_BUILD_TYPE=Release
-          cmake --build lab1/build --parallel
-      - name: Publish to GitHub Releases
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: lab1-${{ github.ref_name }}-v${{ github.run_number }}
-          name: Lab1 Release (${{ github.ref_name }})
-          files: lab1/build/lab1_cli
-          fail_on_unmatched_files: true
-          generate_release_notes: true
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Prepare files
+      run: |
+        mkdir -p release_files
+        find artifacts -type f -exec cp {} release_files/ \;
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release_files/*
